@@ -671,6 +671,8 @@ export function OrderEntryView({ layout }: { layout: OrderEntryLayout }) {
   const canSubmit = orderGroup.kind === "none" ? filled && Number.isFinite(numericQuantity) && numericQuantity !== 0 && (!limitEnabled || order.limitPrice !== "") : groupCanSubmit;
   const QuantityIcon = !filled || order.quantityUnit === "Whole Shares" ? CircleDot : order.quantityUnit === "Fractional" ? FractionalIcon : DollarSign;
   const isOption = filled && !isStrategy && order.spread === "Single";
+  const singleSliderLegs = filled && isOption && limitEnabled ? [{ instrument: "option" as const, side: order.side, quantity: order.quantity, expiration: order.expiration, strike: order.strike, optionType: order.optionType }] : [];
+  const singleSliderRange = singleSliderLegs.length > 0 ? strategyPriceRange(order.symbol, singleSliderLegs, order.side) : null;
   const optionData = filled ? getOptionInstrument(order.symbol) : null;
   const expirations = optionData ? toChoices(optionData.expirations) : [];
   const strikes = optionData ? toChoices(optionData.rows.map((row) => row.strike)) : [];
@@ -713,7 +715,7 @@ export function OrderEntryView({ layout }: { layout: OrderEntryLayout }) {
 
   const tableHasType = template !== "Single";
   const tableHasOptions = isOption || isStrategy;
-  const tableHasSlider = isStrategy;
+  const tableHasSlider = tableHasOptions && limitEnabled;
   const tableColumns = [
     tableHasType ? "100px" : "",
     "120px",
@@ -804,7 +806,7 @@ export function OrderEntryView({ layout }: { layout: OrderEntryLayout }) {
     if (orderGroup.kind === "none") return null;
     const groupHasOptions = linkedOrders.some((linkedOrder) => linkedOrder.spread === "Single" || linkedOrder.strategy.kind === "multi");
     const groupHasStop = linkedOrders.some((linkedOrder) => hasStopPrice(linkedOrder.orderType));
-    const groupHasSlider = linkedOrders.some((linkedOrder) => linkedOrder.strategy.kind === "multi" && linkedOrder.strategy.legs.some((leg) => leg.instrument === "option"));
+    const groupHasSlider = linkedOrders.some((linkedOrder) => hasLimitPrice(linkedOrder.orderType) && (linkedOrder.spread === "Single" || (linkedOrder.strategy.kind === "multi" && linkedOrder.strategy.legs.some((leg) => leg.instrument === "option"))));
     const groupColumns = ["100px", "120px", "170px", "120px", "160px", ...(groupHasOptions ? ["120px", "80px", "80px"] : []), "140px", "140px", ...(groupHasSlider ? ["140px"] : []), ...(groupHasStop ? ["140px"] : []), "120px", "minmax(32px, 1fr)", "24px"].join(" ");
     const headers = ["Type", "Symbol", "Spread", "Side", "Quantity", ...(groupHasOptions ? ["Expiration Date", "Strike", "Option Type"] : []), "Order Type", "Limit Price", ...(groupHasSlider ? ["Limit Price Slider"] : []), ...(groupHasStop ? ["Stop Price"] : []), "Duration", "", ""];
     const clearGroup = () => {
@@ -837,7 +839,8 @@ export function OrderEntryView({ layout }: { layout: OrderEntryLayout }) {
           const limit = hasLimitPrice(linkedOrder.orderType);
           const stop = hasStopPrice(linkedOrder.orderType);
           const rowKey = `${linkedOrder.id}-${legIndex}`;
-          const sliderRange = strategy && hasLimitPrice(linkedOrder.orderType) ? strategyPriceRange(linkedOrder.symbol, strategy.legs, linkedOrder.side) : null;
+          const sliderLegs = strategy ? strategy.legs : linkedOrder.spread === "Single" ? [{ instrument: "option" as const, side: linkedOrder.side, quantity: linkedOrder.quantity, expiration: linkedOrder.expiration, strike: linkedOrder.strike, optionType: linkedOrder.optionType }] : [];
+          const sliderRange = limit && sliderLegs.length > 0 ? strategyPriceRange(linkedOrder.symbol, sliderLegs, linkedOrder.side) : null;
           return <div className="toe-row" data-order-id={linkedOrder.id} key={rowKey}>
             {first ? renderGroupTypeCell(orderIndex) : <div className="toe-cell toe-type-cell toe-cell-empty">{renderLegConnectors(rowIndex)}</div>}
             <div className={`toe-cell oe-field oe-symbol ${first ? "" : "toe-cell-empty"}`}>{first ? <SelectMenu ariaLabel={`Symbol for linked order ${orderIndex + 1}`} className="oe-control-select" choices={symbols} label={null} variant="solid" value={linkedOrder.symbol} onChange={(symbol) => changeLinkedOrder(linkedOrder.id, { symbol })} /> : null}</div>
@@ -863,7 +866,7 @@ export function OrderEntryView({ layout }: { layout: OrderEntryLayout }) {
     if (orderGroup.kind === "none") return null;
     const groupHasOptions = linkedOrders.some((linkedOrder) => linkedOrder.spread === "Single" || linkedOrder.strategy.kind === "multi");
     const groupHasStop = linkedOrders.some((linkedOrder) => hasStopPrice(linkedOrder.orderType));
-    const groupHasSlider = linkedOrders.some((linkedOrder) => linkedOrder.strategy.kind === "multi" && linkedOrder.strategy.legs.some((leg) => leg.instrument === "option"));
+    const groupHasSlider = linkedOrders.some((linkedOrder) => hasLimitPrice(linkedOrder.orderType) && (linkedOrder.spread === "Single" || (linkedOrder.strategy.kind === "multi" && linkedOrder.strategy.legs.some((leg) => leg.instrument === "option"))));
     const columns = ["72px", "120px", "192px", "120px", "230px", ...(groupHasOptions ? ["120px", "80px", "80px"] : []), "160px", "160px", ...(groupHasSlider ? ["160px"] : []), ...(groupHasStop ? ["160px"] : []), "100px", "minmax(32px, 1fr)"].join(" ");
     const clearGroup = () => {
       setOrderGroup({ kind: "none" });
@@ -902,7 +905,8 @@ export function OrderEntryView({ layout }: { layout: OrderEntryLayout }) {
       const emptyCell = <span className="oe-leg-cell" />;
       const disabledCell = <span className="oe-leg-cell is-disabled">—</span>;
       const editable = leg === null || first || !locked;
-      const sliderRange = strategy && hasLimitPrice(linkedOrder.orderType) ? strategyPriceRange(linkedOrder.symbol, strategy.legs, linkedOrder.side) : null;
+      const sliderLegs = strategy ? strategy.legs : linkedOrder.spread === "Single" ? [{ instrument: "option" as const, side: linkedOrder.side, quantity: linkedOrder.quantity, expiration: linkedOrder.expiration, strike: linkedOrder.strike, optionType: linkedOrder.optionType }] : [];
+      const sliderRange = limit && sliderLegs.length > 0 ? strategyPriceRange(linkedOrder.symbol, sliderLegs, linkedOrder.side) : null;
       const lastLeg = leg !== null && strategy !== null && legIndex === strategy.legs.length - 1;
       return {
         rowKey, first, locked, limit, stop, linkedOrder, orderIndex, leg, legIndex, strategy, emptyCell, disabledCell, editable, changeField, optionData, legStrikes, optionLeg, showOptions, sliderRange, lastLeg,
@@ -1004,6 +1008,7 @@ export function OrderEntryView({ layout }: { layout: OrderEntryLayout }) {
           {isOption ? <><div className="toe-cell oe-field oe-expiration"><SelectMenu ariaLabel="Option expiration date" className="oe-control-select" choices={expirations} label={null} variant="solid" value={order.expiration} onChange={(expiration) => setOrder({ ...order, expiration })} /></div><div className="toe-cell oe-field oe-strike"><SelectMenu ariaLabel="Option strike" className="oe-control-select" choices={strikes} label={null} variant="solid" value={order.strike} onChange={(strike) => setOrder({ ...order, strike })} /></div><div className="toe-cell oe-field oe-option-type"><SelectMenu ariaLabel="Option type" className="oe-control-select" choices={optionTypes} label={null} variant="solid" value={order.optionType} onChange={(optionType) => setOrder({ ...order, optionType })} /></div></> : null}
           <div className="toe-cell oe-field oe-order-type">{filled ? <SelectMenu ariaLabel="Order type" className="oe-control-select" choices={orderTypes} label={null} variant="solid" value={order.orderType} onChange={(orderType) => setOrder({ ...order, orderType })} /> : <button className="oe-disabled-select" type="button" disabled>—<ChevronDown aria-hidden="true" /></button>}</div>
           <div className="toe-cell oe-field oe-limit-price"><div className="oe-price-control"><div className={`oe-number-input ${limitEnabled ? "" : "is-disabled"}`}><input type="text" inputMode="decimal" aria-label="Limit price" disabled={!limitEnabled} value={limitEnabled ? order.limitPrice : ""} placeholder="—" onFocus={(event) => event.currentTarget.select()} onBlur={() => { if (filled && limitEnabled) setOrder({ ...order, limitPrice: normalizePrice(order.limitPrice) }); }} onChange={(event) => { if (filled && decimalPattern.test(event.target.value)) setOrder({ ...order, limitPrice: event.target.value }); }} /><button type="button" aria-label="Decrease limit price" disabled={!limitEnabled} onClick={() => { if (filled) setOrder({ ...order, limitPrice: stepPrice(order.limitPrice, -1) }); }}><Minus aria-hidden="true" /></button><button type="button" aria-label="Increase limit price" disabled={!limitEnabled} onClick={() => { if (filled) setOrder({ ...order, limitPrice: stepPrice(order.limitPrice, 1) }); }}><Plus aria-hidden="true" /></button></div><button className="oe-price-lock" type="button" aria-label={filled && order.priceLockOpen ? "Lock limit price" : "Unlock limit price"} aria-pressed={filled && order.priceLockOpen} disabled={!limitEnabled} onClick={() => { if (filled) setOrder({ ...order, priceLockOpen: !order.priceLockOpen }); }}>{filled && order.priceLockOpen ? <Lock aria-hidden="true" /> : <LockOpen aria-hidden="true" />}</button></div></div>
+          {tableHasSlider ? <div className="toe-cell toe-cell-slider">{singleSliderRange ? <PriceRangeSlider range={singleSliderRange} value={Number(order.limitPrice) || 0} disabled={order.priceLockOpen} onChange={(value) => setOrder({ ...order, limitPrice: value.toFixed(2) })} /> : null}</div> : null}
           <div className="toe-cell oe-field oe-duration">{filled ? <SelectMenu ariaLabel="Order duration" className="oe-control-select" choices={durations} label={null} variant="solid" value={order.duration} onChange={(duration) => setOrder({ ...order, duration })} /> : <button className="oe-disabled-select" type="button" disabled>—<ChevronDown aria-hidden="true" /></button>}</div>
           <div className="toe-cell" />
           <div className="toe-cell toe-action-cell">{filled ? <button type="button" aria-label="Remove order" onClick={() => setOrder({ kind: "empty" })}><X aria-hidden="true" /></button> : null}</div>
@@ -1095,6 +1100,7 @@ export function OrderEntryView({ layout }: { layout: OrderEntryLayout }) {
               {filled ? <button className="oe-price-lock" type="button" aria-label={order.priceLockOpen ? "Unlock limit price" : "Lock limit price"} aria-pressed={order.priceLockOpen} disabled={!limitEnabled} onClick={() => setOrder({ ...order, priceLockOpen: !order.priceLockOpen })}>{order.priceLockOpen ? <Lock aria-hidden="true" /> : <LockOpen aria-hidden="true" />}</button> : null}
             </div>
           </label>
+          {singleSliderRange ? <label className="oe-field oe-price-slider"><span>Limit Price Slider</span><PriceRangeSlider range={singleSliderRange} value={Number(order.limitPrice) || 0} disabled={order.priceLockOpen} onChange={(value) => setOrder({ ...order, limitPrice: value.toFixed(2) })} /></label> : null}
 
           <label className="oe-field oe-duration"><span>Duration</span>{filled ? <SelectMenu ariaLabel="Order duration" className="oe-control-select" choices={durations} label={null} variant="solid" value={order.duration} onChange={(duration) => setOrder({ ...order, duration })} /> : <button className="oe-disabled-select" type="button" disabled>—<ChevronDown aria-hidden="true" /></button>}</label>
           {filled ? <div className="oe-field oe-actions"><span /><button type="button" aria-label="Remove order" onClick={() => setOrder({ kind: "empty" })}><X aria-hidden="true" /></button></div> : null}
