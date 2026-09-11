@@ -119,7 +119,7 @@ const createLinkedOrder = (base: FilledOrder, id: string, side: "Buy" | "Sell", 
   strategy: { kind: "none" },
 });
 
-const createParentLinkedOrder = (base: FilledOrder, id: string): LinkedOrder => ({ ...base, id });
+const createParentLinkedOrder = (base: FilledOrder, id: string): LinkedOrder => ({ ...base, id, stopPrice: base.limitPrice });
 
 const createOrderGroup = (template: Exclude<TemplateName, "Single">, base: FilledOrder): OrderGroup => {
   if (template === "OCO") return { kind: "oco", orders: [createParentLinkedOrder(base, "oco-1"), createLinkedOrder(base, "oco-2", "Sell", "Stop Market")] };
