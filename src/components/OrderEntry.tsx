@@ -672,7 +672,12 @@ export function OrderEntryView({ layout }: { layout: OrderEntryLayout }) {
   const QuantityIcon = !filled || order.quantityUnit === "Whole Shares" ? CircleDot : order.quantityUnit === "Fractional" ? FractionalIcon : DollarSign;
   const isOption = filled && !isStrategy && order.spread === "Single";
   const singleSliderLegs = filled && isOption && limitEnabled ? [{ instrument: "option" as const, side: order.side, quantity: order.quantity, expiration: order.expiration, strike: order.strike, optionType: order.optionType }] : [];
-  const singleSliderRange = singleSliderLegs.length > 0 ? strategyPriceRange(order.symbol, singleSliderLegs, order.side) : null;
+  const singleSliderRange = filled && singleSliderLegs.length > 0 ? strategyPriceRange(order.symbol, singleSliderLegs, order.side) : null;
+  const singleSliderValue = filled && singleSliderRange ? Number(order.limitPrice) || 0 : 0;
+  const singleSliderDisabled = !filled || !singleSliderRange || order.priceLockOpen;
+  const changeSingleSliderLimit = (value: number) => {
+    if (filled) setOrder({ ...order, limitPrice: value.toFixed(2) });
+  };
   const optionData = filled ? getOptionInstrument(order.symbol) : null;
   const expirations = optionData ? toChoices(optionData.expirations) : [];
   const strikes = optionData ? toChoices(optionData.rows.map((row) => row.strike)) : [];
@@ -1100,7 +1105,7 @@ export function OrderEntryView({ layout }: { layout: OrderEntryLayout }) {
               {filled ? <button className="oe-price-lock" type="button" aria-label={order.priceLockOpen ? "Unlock limit price" : "Lock limit price"} aria-pressed={order.priceLockOpen} disabled={!limitEnabled} onClick={() => setOrder({ ...order, priceLockOpen: !order.priceLockOpen })}>{order.priceLockOpen ? <Lock aria-hidden="true" /> : <LockOpen aria-hidden="true" />}</button> : null}
             </div>
           </label>
-          {singleSliderRange ? <label className="oe-field oe-price-slider"><span>Limit Price Slider</span><PriceRangeSlider range={singleSliderRange} value={Number(order.limitPrice) || 0} disabled={order.priceLockOpen} onChange={(value) => setOrder({ ...order, limitPrice: value.toFixed(2) })} /></label> : null}
+          {singleSliderRange ? <label className="oe-field oe-price-slider"><span>Limit Price Slider</span><PriceRangeSlider range={singleSliderRange} value={singleSliderValue} disabled={singleSliderDisabled} onChange={changeSingleSliderLimit} /></label> : null}
 
           <label className="oe-field oe-duration"><span>Duration</span>{filled ? <SelectMenu ariaLabel="Order duration" className="oe-control-select" choices={durations} label={null} variant="solid" value={order.duration} onChange={(duration) => setOrder({ ...order, duration })} /> : <button className="oe-disabled-select" type="button" disabled>—<ChevronDown aria-hidden="true" /></button>}</label>
           {filled ? <div className="oe-field oe-actions"><span /><button type="button" aria-label="Remove order" onClick={() => setOrder({ kind: "empty" })}><X aria-hidden="true" /></button></div> : null}
