@@ -199,10 +199,11 @@ function FractionalIcon() {
   return <svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="3" r="1.5" fill="currentColor" stroke="none" /><circle cx="5.25" cy="7.5" r="1.5" fill="currentColor" stroke="none" /><circle cx="10.75" cy="7.5" r="1.5" fill="currentColor" stroke="none" /><circle cx="2.5" cy="12" r="1.5" fill="currentColor" stroke="none" /><circle cx="8" cy="12" r="1.5" fill="currentColor" stroke="none" /><circle cx="13.5" cy="12" r="1.5" fill="currentColor" stroke="none" /></svg>;
 }
 
-const strategyPriceRange = (symbol: string, legs: StrategyLeg[], side: string, limitPrice: number) => {
+const strategyPriceRange = (symbol: string, legs: StrategyLeg[], side: string) => {
   const optionLegs = legs.filter((leg) => leg.instrument === "option");
   if (optionLegs.length === 0) return null;
-  const rows = getOptionInstrument(symbol).rows;
+  const instrument = getOptionInstrument(symbol);
+  const rows = instrument.rows;
   const quote = (strike: number, optionType: string, ask: boolean) => {
     const valueOf = (row: (typeof rows)[number]) => {
       const quotes = optionType === "Call" ? row.call : row.put;
@@ -235,12 +236,11 @@ const strategyPriceRange = (symbol: string, legs: StrategyLeg[], side: string, l
   const ask = optionLegs.reduce((sum, leg) => sum + sign(leg) * quote(Number(leg.strike), leg.optionType, true), 0);
   const natural = (bid + ask) / 2;
   if (!Number.isFinite(bid) || !Number.isFinite(ask) || Math.abs(ask - bid) < 0.01) {
-    const base = Math.abs(limitPrice) > 0.01 ? Math.abs(limitPrice) : Math.max(0.01, Math.abs(natural) || 1);
+    const base = Math.max(0.05, Math.round(instrument.market.last) / 100);
     const offset = Math.max(0.05, base * 0.1);
-    const low = Math.max(0.01, base - offset);
     return side.startsWith("Buy")
-      ? { low, high: base + offset, lowLabel: "nat", highLabel: "ask" }
-      : { low, high: base + offset, lowLabel: "bid", highLabel: "nat" };
+      ? { low: base - offset, high: base + offset, lowLabel: "nat", highLabel: "ask" }
+      : { low: base - offset, high: base + offset, lowLabel: "bid", highLabel: "nat" };
   }
   return side.startsWith("Buy")
     ? { low: natural, high: ask, lowLabel: "nat", highLabel: "ask" }
@@ -681,7 +681,7 @@ export function OrderEntryView({ layout }: { layout: OrderEntryLayout }) {
     const firstIsOption = legs[0].instrument === "option";
     const strategyCanLock = name !== "Custom" && name !== "Combo";
     const optionData = getOptionInstrument(order.symbol);
-    const sliderRange = strategyPriceRange(order.symbol, legs, order.side, Number(order.limitPrice) || 0);
+    const sliderRange = strategyPriceRange(order.symbol, legs, order.side);
     const expirations = toChoices(optionData.expirations);
     const strikes = toChoices(optionData.rows.map((row) => row.strike));
     const strategyStrikeChoices = [...new Set([...strikes.map((choice) => choice.value), ...legs.filter((leg) => leg.instrument === "option").map((leg) => leg.strike)])].sort((left, right) => Number(left) - Number(right)).map((value) => ({ value, icon: null }));
@@ -835,7 +835,7 @@ export function OrderEntryView({ layout }: { layout: OrderEntryLayout }) {
           const limit = hasLimitPrice(linkedOrder.orderType);
           const stop = hasStopPrice(linkedOrder.orderType);
           const rowKey = `${linkedOrder.id}-${legIndex}`;
-          const sliderRange = strategy && hasLimitPrice(linkedOrder.orderType) ? strategyPriceRange(linkedOrder.symbol, strategy.legs, linkedOrder.side, Number(linkedOrder.limitPrice) || 0) : null;
+          const sliderRange = strategy && hasLimitPrice(linkedOrder.orderType) ? strategyPriceRange(linkedOrder.symbol, strategy.legs, linkedOrder.side) : null;
           return <div className="toe-row" data-order-id={linkedOrder.id} key={rowKey}>
             {first ? renderGroupTypeCell(orderIndex) : <div className="toe-cell toe-type-cell toe-cell-empty">{renderLegConnectors(rowIndex)}</div>}
             <div className={`toe-cell oe-field oe-symbol ${first ? "" : "toe-cell-empty"}`}>{first ? <SelectMenu ariaLabel={`Symbol for linked order ${orderIndex + 1}`} className="oe-control-select" choices={symbols} label={null} variant="solid" value={linkedOrder.symbol} onChange={(symbol) => changeLinkedOrder(linkedOrder.id, { symbol })} /> : null}</div>
@@ -900,7 +900,7 @@ export function OrderEntryView({ layout }: { layout: OrderEntryLayout }) {
       const emptyCell = <span className="oe-leg-cell" />;
       const disabledCell = <span className="oe-leg-cell is-disabled">—</span>;
       const editable = leg === null || first || !locked;
-      const sliderRange = strategy && hasLimitPrice(linkedOrder.orderType) ? strategyPriceRange(linkedOrder.symbol, strategy.legs, linkedOrder.side, Number(linkedOrder.limitPrice) || 0) : null;
+      const sliderRange = strategy && hasLimitPrice(linkedOrder.orderType) ? strategyPriceRange(linkedOrder.symbol, strategy.legs, linkedOrder.side) : null;
       const lastLeg = leg !== null && strategy !== null && legIndex === strategy.legs.length - 1;
       return {
         rowKey, first, locked, limit, stop, linkedOrder, orderIndex, leg, legIndex, strategy, emptyCell, disabledCell, editable, changeField, optionData, legStrikes, optionLeg, showOptions, sliderRange, lastLeg,
@@ -953,7 +953,7 @@ export function OrderEntryView({ layout }: { layout: OrderEntryLayout }) {
       const { name, legs, locked } = order.strategy;
       const strategyCanLock = name !== "Custom" && name !== "Combo";
       const optionData = getOptionInstrument(order.symbol);
-      const sliderRange = strategyPriceRange(order.symbol, legs, order.side, Number(order.limitPrice) || 0);
+      const sliderRange = strategyPriceRange(order.symbol, legs, order.side);
       const legExpirations = toChoices(optionData.expirations);
       const legStrikes = [...new Set([...optionData.rows.map((row) => `${row.strike}`), ...legs.filter((leg) => leg.instrument === "option").map((leg) => leg.strike)])].sort((left, right) => Number(left) - Number(right)).map((value) => ({ value, icon: null }));
       const updateFirstLeg = (update: Partial<StrategyLeg>) => locked ? changeLockedStrategy(update) : updateStrategyLeg(0, update);
