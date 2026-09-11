@@ -119,10 +119,12 @@ const createLinkedOrder = (base: FilledOrder, id: string, side: "Buy" | "Sell", 
   strategy: { kind: "none" },
 });
 
+const createParentLinkedOrder = (base: FilledOrder, id: string): LinkedOrder => ({ ...base, id });
+
 const createOrderGroup = (template: Exclude<TemplateName, "Single">, base: FilledOrder): OrderGroup => {
-  if (template === "OCO") return { kind: "oco", orders: [createLinkedOrder(base, "oco-1", "Sell", "Limit"), createLinkedOrder(base, "oco-2", "Sell", "Stop Market")] };
-  if (template === "One Starts the Other") return { kind: "oso", orders: [createLinkedOrder(base, "oso-parent", "Buy", "Limit"), createLinkedOrder(base, "oso-child", "Sell", "Limit")] };
-  return { kind: "oso-oco", parent: createLinkedOrder(base, "oso-parent", "Buy", "Market"), pairs: [[createLinkedOrder(base, "oco-1-a", "Sell", "Limit"), createLinkedOrder(base, "oco-1-b", "Sell", "Stop Market")]] };
+  if (template === "OCO") return { kind: "oco", orders: [createParentLinkedOrder(base, "oco-1"), createLinkedOrder(base, "oco-2", "Sell", "Stop Market")] };
+  if (template === "One Starts the Other") return { kind: "oso", orders: [createParentLinkedOrder(base, "oso-parent"), createLinkedOrder(base, "oso-child", "Sell", "Limit")] };
+  return { kind: "oso-oco", parent: createParentLinkedOrder(base, "oso-parent"), pairs: [[createLinkedOrder(base, "oco-1-a", "Sell", "Limit"), createLinkedOrder(base, "oco-1-b", "Sell", "Stop Market")]] };
 };
 
 const getGroupOrders = (group: OrderGroup): LinkedOrder[] => {
