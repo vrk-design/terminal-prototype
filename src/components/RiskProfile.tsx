@@ -375,6 +375,8 @@ export function RiskProfile() {
           const hasSpreadIndicators = position.kind === "simulated" && ((position.group === "leg" && position.spread) || position.group === "single");
           const positionSelected = !deselectedPositions.includes(position.id);
           const trade = createTradeRequest(position);
+          const childLegs = allPositions.filter((item) => item.parentId === position.id);
+          const liveTrade = childLegs.length > 0 ? { ...trade, legs: childLegs.map((leg) => ({ side: (leg.side.startsWith("Sell") ? "Sell" : "Buy") as "Buy" | "Sell", quantity: Math.abs(leg.qty ?? 1), expiration: leg.expiration, strike: leg.strike, optionType: leg.optionType, price: leg.price })) } : trade;
           return (
             <div className={`position-grid position-row is-${position.group} ${position.group === "leg" && position.spread ? "is-group-header" : ""}`} role="row" key={position.id} onContextMenu={(event) => { event.preventDefault(); openPositionMenu(position.id, event.clientX, event.clientY); }}>
               <span className="position-expander">{position.group === "leg" && position.spread ? <button type="button" aria-label={collapsedParents.includes(position.id) ? `Expand ${position.spread} legs` : `Collapse ${position.spread} legs`} aria-expanded={!collapsedParents.includes(position.id)} onClick={() => toggleParent(position.id)}>{collapsedParents.includes(position.id) ? <ChevronRight aria-hidden="true" /> : <ChevronDown aria-hidden="true" />}</button> : null}</span>
@@ -403,7 +405,7 @@ export function RiskProfile() {
               <span className="position-symbol">{position.symbol}</span>
               <span>{position.volatility}</span>
               <span>{position.delta}</span>
-              <span>{position.kind === "simulated" && (position.group === "single" || position.id === "sim-stock" || (position.group === "leg" && position.spread)) ? <button className="trade-button" type="button" onClick={() => requestLiveTrade(trade)}>Trade</button> : null}</span>
+              <span>{position.kind === "simulated" && (position.group === "single" || position.id === "sim-stock" || (position.group === "leg" && position.spread)) ? <button className="trade-button" type="button" onClick={() => requestLiveTrade(liveTrade, position.id)}>Trade</button> : null}</span>
               <span />
               <span className="position-row-action"><button type="button" aria-label={`More actions for ${position.spread || position.id}`} aria-expanded={positionMenu.kind === "open" && positionMenu.positionId === position.id} onClick={(event) => { event.stopPropagation(); const bounds = event.currentTarget.getBoundingClientRect(); openPositionMenu(position.id, bounds.right - 176, bounds.bottom + 4); }}><Ellipsis aria-hidden="true" /></button></span>
             </div>

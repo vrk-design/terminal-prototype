@@ -3,7 +3,7 @@ import { useNotifications } from "../components/Notifications";
 import type { Position, TradeRequest } from "./types";
 import "./TradingMode.css";
 
-export type LiveTradeTransition = { kind: "idle" } | { kind: "simulated-to-live"; trade: TradeRequest };
+export type LiveTradeTransition = { kind: "idle" } | { kind: "simulated-to-live"; trade: TradeRequest; positionId: string };
 
 type Session = {
   oneClick: boolean;
@@ -27,7 +27,7 @@ type TradingModeActions = {
   clearCustomStrategyLegDraft: () => void;
   removeSimulatedPosition: (id: string) => void;
   removeRealPosition: (id: string) => void;
-  requestLiveTrade: (trade: TradeRequest) => void;
+  requestLiveTrade: (trade: TradeRequest, positionId: string) => void;
   confirmLiveTrade: () => void;
   cancelLiveTrade: () => void;
 };
@@ -174,15 +174,20 @@ export function TradingModeProvider({ children }: { children: ReactNode }) {
     updateSession({ ...current, realPositions: current.realPositions.filter((position) => position.id !== id && position.parentId !== id) });
   }, [updateSession]);
 
-  const requestLiveTrade = useCallback((trade: TradeRequest) => {
-    setLiveTradeTransition({ kind: "simulated-to-live", trade });
+  const requestLiveTrade = useCallback((trade: TradeRequest, positionId: string) => {
+    setLiveTradeTransition({ kind: "simulated-to-live", trade, positionId });
   }, []);
 
   const confirmLiveTrade = useCallback(() => {
     if (liveTradeTransition.kind !== "simulated-to-live") return;
+    const { trade, positionId } = liveTradeTransition;
     const current = sessionRef.current;
-    updateSession({ ...current, realPositions: [...createPositions(liveTradeTransition.trade, "real", "real"), ...current.realPositions] });
-    placeOrder(liveTradeTransition.trade.message);
+    updateSession({
+      ...current,
+      realPositions: [...createPositions(trade, "real", "real"), ...current.realPositions],
+      simulatedPositions: current.simulatedPositions.filter((position) => position.id !== positionId && position.parentId !== positionId),
+    });
+    placeOrder(trade.message);
     setLiveTradeTransition({ kind: "idle" });
   }, [liveTradeTransition, placeOrder, updateSession]);
 
