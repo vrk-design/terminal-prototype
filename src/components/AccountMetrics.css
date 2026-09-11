@@ -1,0 +1,98 @@
+.widget.account-metrics-widget {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-width: 200px;
+  border: 0;
+  border-radius: 0;
+  color: #f1f3f5;
+}
+
+.account-metrics-toolbar {
+  position: relative;
+  display: flex;
+  align-items: center;
+  height: 41px;
+  min-height: 41px;
+  padding: 0 2px;
+  border-bottom: 1px solid #2e3341;
+  background: #12161d;
+}
+
+.account-metrics-table-wrap {
+  min-height: 0;
+  flex: 1;
+  overflow: auto;
+  padding-bottom: 8px;
+}
+
+.account-metrics-table {
+  width: 100%;
+  min-width: 360px;
+  border-collapse: separate;
+  border-spacing: 0;
+  table-layout: fixed;
+  font-size: 14px;
+}
+
+.account-metrics-metric-column,
+.account-metrics-value-column {
+  width: 240px;
+}
+
+.account-metrics-filler-column {
+  width: 63px;
+}
+
+.account-metrics-table th,
+.account-metrics-table td {
+  height: 33px;
+  padding: 4px 8px;
+  border-bottom: 1px solid #2e3341;
+  font-weight: 400;
+  line-height: 20px;
+  white-space: nowrap;
+}
+
+.account-metrics-table thead th {
+  position: sticky;
+  z-index: 2;
+  top: 0;
+  height: var(--table-header-height);
+  padding-top: 4px;
+  padding-bottom: 4px;
+  border-bottom: 0;
+  background: #1f242f;
+  color: #969ea8;
+  text-align: left;
+}
+
+.account-metrics-table thead th:first-child,
+.account-metrics-table tbody th {
+  width: 240px;
+  text-align: left;
+}
+
+.account-metrics-table thead th:nth-child(2),
+.account-metrics-table tbody td:nth-child(2) {
+  text-align: right;
+}
+
+.account-metrics-table tbody td:last-child {
+  color: transparent;
+}
+
+.account-metrics-table tbody th {
+  overflow: hidden;
+  color: #f1f3f5;
+  text-overflow: ellipsis;
+}
+
+.account-metrics-table tbody tr:hover {
+  background: rgba(225, 231, 237, .04);
+}
+
+.account-metrics-table tbody td {
+  color: #f1f3f5;
+  font-variant-numeric: tabular-nums;
+}

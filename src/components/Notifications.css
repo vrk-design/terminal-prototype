@@ -1,0 +1,48 @@
+.notification-stack {
+  position: fixed;
+  z-index: 100;
+  top: 78px;
+  right: 12px;
+  display: grid;
+  width: 320px;
+  gap: 20px;
+  pointer-events: none;
+}
+
+.terminal-notification {
+  position: relative;
+  display: grid;
+  min-height: 92px;
+  padding: 15px 42px 15px 20px;
+  border: 1px solid #2e3341;
+  border-radius: 16px;
+  background: #1f242f;
+  box-shadow: 0 4px 8px rgba(5, 7, 11, .16);
+  color: #f1f3f5;
+  font-size: 14px;
+  line-height: 20px;
+  pointer-events: auto;
+  animation: notification-in 160ms ease-out;
+}
+
+.notification-title { display: flex; align-items: flex-start; gap: 4px; }
+.notification-title svg { width: 18px; height: 18px; flex: 0 0 18px; margin-top: 1px; stroke-width: 1.75; }
+.notification-title strong { font-weight: 500; }
+.terminal-notification.is-info .notification-title { color: #69b3fe; }
+.terminal-notification.is-success .notification-title { color: #60be86; }
+.terminal-notification.is-error .notification-title { color: #ff6e7a; }
+.terminal-notification.is-simulation .notification-title { color: #69b3fe; }
+.terminal-notification p { margin: 0; overflow-wrap: anywhere; }
+.terminal-notification > span { color: #969ea8; }
+.terminal-notification > button { position: absolute; top: 12px; right: 12px; display: grid; width: 24px; height: 24px; padding: 0; place-items: center; border: 0; border-radius: 6px; background: transparent; color: #c9ced4; }
+.terminal-notification > button:hover { background: #343a48; color: #f1f3f5; }
+.terminal-notification > button:active { background: #151a22; }
+.terminal-notification > button svg { width: 16px; height: 16px; }
+
+@keyframes notification-in {
+  from { opacity: 0; transform: translateX(16px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .terminal-notification { animation: none; }
+}

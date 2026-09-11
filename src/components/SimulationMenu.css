@@ -1,0 +1,26 @@
+.simulation-menu {
+  position: fixed;
+  z-index: 220;
+  width: 323px;
+}
+
+.simulation-menu .simulation-menu-list {
+  position: static;
+  width: 100%;
+  max-height: none;
+  gap: 4px;
+  padding: 5px;
+  border-color: #2e3341;
+  border-radius: 8px;
+  background: #1f242f;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, .6), 0 16px 40px rgba(0, 0, 0, .65);
+}
+
+.simulation-menu-header { width: 100%; padding: 8px 8px 9px; border-bottom: 1px solid #2e3341; color: #f1f3f5; font-size: 16px; font-weight: 500; line-height: 22px; }
+.simulation-menu .select-menu-option { min-height: 32px; gap: 8px; padding: 4px 8px 4px 4px; border-radius: 6px; font-size: 16px; line-height: 22px; }
+.simulation-menu .select-menu-option:disabled:hover { background: transparent; }
+.simulation-menu .select-menu-option.is-sell { color: #ff6e7a; }
+.simulation-menu .select-menu-option.is-buy { color: #60be86; }
+.simulation-menu .select-menu-option:disabled { color: #969ea8; }
+.simulation-menu-separator { width: calc(100% - 8px); height: 1px; margin: 0 4px; background: #2e3341; }
+.simulation-menu svg { width: 24px; height: 24px; flex: 0 0 24px; }
